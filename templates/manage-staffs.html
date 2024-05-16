@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage staffs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+{% include 'header.html' %}
+<div class="mx-24 mt-12">
+<div class="flex justify-between items-center">
+    <h3 class="text-lg font-medium">Quản lý nhân viên</h3>
+    <a href="/manage-staffs/create" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+        Thêm nhân viên
+    </a>
+</div>
+<div class="relative overflow-x-auto mt-12">
+    <table class="w-full text-sm text-left rtl:text-right text-gray-500">
+        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+            <tr>
+                <th scope="col" class="px-6 py-3">
+                    Email
+                </th>
+                <th scope="col" class="px-6 py-3">
+                    First name
+                </th>
+                <th scope="col" class="px-6 py-3">
+                    Last name
+                </th>
+                <th scope="col" class="px-6 py-3">
+                    Gender
+                </th>
+                <th scope="col" class="px-6 py-3">
+                    Phone
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+
+            {% for staff in staffs %}
+            <tr class="bg-white border-b">
+                <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
+                    {{ staff.email }}
+                </th>
+                <td class="px-6 py-4">
+                    {{ staff.firstName }}
+                </td>
+                <td class="px-6 py-4">
+                    {{ staff.lastName }}
+                </td>
+                <td class="px-6 py-4">
+                    {{ staff.gender }}
+                </td>
+                <td class="px-6 py-4">
+                    {{ staff.phone }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+</div>
+
+</body>
+</html>
