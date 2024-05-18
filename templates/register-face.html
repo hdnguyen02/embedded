@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng ký khuôn mặt</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+<a href="/manage-staffs" class='mx-24 mt-12 flex items-center gap-x-1 cursor-pointer text-blue-600 underline'>
+            <img class='w-5 h-5' src="/static/image/back.png" alt="" />
+            <span>Quản lý nhân viên</span>
+</a>
+<div class="flex justify-center pt-12 gap-x-12">
+    <div class="flex flex-col gap-y-4">
+        <h3 class="text-2xl font-medium">Đăng ký khuôn mặt</h3>
+        <img id="videoStream" src="{{ url_for('video_feed') }}" alt="Camera Stream" width="640" height="480">
+    </div>
+    <div class="flex flex-col justify-between">
+         <span class="font-medium text-2xl" id="showTotalCapture">0 hình ảnh</span>
+        <div>
+            <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" id="captureButton">Bắt đầu lấy ảnh</button>
+            <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded" id="stopCaptureButton">Ngưng lấy ảnh</button>
+        </div>
+    </div>
+</div>
+</body>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        let socket = io.connect('http://' + document.domain + ':' + location.port)
+        socket.on('connect', function() {
+                console.log('connected to server');
+        });
+        const captureButton = document.getElementById('captureButton')
+        const stopCaptureButton = document.getElementById('stopCaptureButton')
+        const showTotalCapture = document.getElementById('showTotalCapture')
+        socket.on('showTotalCapture', function ({totalDataset}) {
+            showTotalCapture.innerText = "Số ảnh " + totalDataset
+        })
+        captureButton.addEventListener('click', function () {
+            showTotalCapture.innerText = '0 hình ảnh'
+            socket.emit('capture')
+        })
+        stopCaptureButton.addEventListener('click', function () {
+            socket.emit('stop-capture')
+        })
+    })
+
+</script>
+</html>

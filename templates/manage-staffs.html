@@ -33,6 +33,12 @@
                 <th scope="col" class="px-6 py-3">
                     Phone
                 </th>
+                 <th scope="col" class="px-6 py-3">
+                    Đăng ký khuôn mặt
+                </th>
+                <th scope="col" class="px-6 py-3">
+                    Quản lý dataset
+                </th>
             </tr>
         </thead>
         <tbody>
@@ -53,6 +59,17 @@
                 </td>
                 <td class="px-6 py-4">
                     {{ staff.phone }}
+                </td>
+
+                <td class="px-6 py-4">
+                    <a href="/register-face/{{ staff.uid }}">
+                        <img class="w-6" src="/static/image/register.png" alt="">
+                    </a>
+                </td>
+                <td class="px-6 py-4">
+                    <a href="/dataset/{{ staff.uid }}">
+                        <img src="/static/image/dataset.png" alt="">
+                    </a>
                 </td>
             </tr>
             {% endfor %}
