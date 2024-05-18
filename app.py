@@ -1,10 +1,11 @@
 import os
 
-from firebase_admin import credentials, initialize_app, firestore
+from firebase_admin import credentials, initialize_app, firestore, storage
 from flask import Flask, session, render_template, request, Response, redirect
 from google.cloud.firestore_v1.base_query import FieldFilter
 from google.cloud.firestore_v1.base_query import BaseCompositeFilter
 from datetime import timedelta, datetime
+from werkzeug.utils import secure_filename
 import cv2
 from flask_socketio import SocketIO
 from multiprocessing import Process
@@ -17,7 +18,10 @@ socketio = SocketIO(app)
 
 json_path = os.path.join(app.root_path, 'static', 'config', 'firebase_credentials.json')
 cred = credentials.Certificate(json_path)
-initialize_app(cred)
+initialize_app(cred, {
+    'storageBucket': 'embedded-2fcfe.appspot.com'
+})
+bucket = storage.bucket()
 db = firestore.client()
 users_ref = db.collection('users')
 
@@ -28,7 +32,19 @@ faces = []
 
 @app.route('/')
 def show_login():
+    if is_authenticate():
+        return redirect('/manage-staffs')
     return render_template('login.html')
+
+
+@app.route('/log-out')
+def log_out():
+    session.pop('authenticated', None)
+    session.pop('email', None)
+    session.pop('uid', None)
+    session.pop('firstName', None)
+    session.pop('lastName', None)
+    return redirect('/')
 
 
 @app.route('/', methods=['POST'])
@@ -59,7 +75,7 @@ def is_authenticate():
 @app.route('/manage-staffs')
 def show_manage_staffs():
     if not is_authenticate():
-        return render_template('not_authenticate.html')
+        return render_template('not-authenticate.html')
 
     query = users_ref.where('role', '==', 'staff').get()
     staffs = []
@@ -73,15 +89,28 @@ def show_manage_staffs():
 @app.route('/manage-staffs/create')
 def show_create_staffs():
     if not is_authenticate():
-        return render_template('not_authenticate.html')
+        return render_template('not-authenticate.html')
     return render_template('create-staff.html')
 
 
 @app.route('/manage-staffs/create', methods=['POST'])
 def create_staffs():
     if not is_authenticate():
-        return render_template('not_authenticate.html')
+        return render_template('not-authenticate.html')
     form = request.form
+
+    file = request.files['avatar']  # lưu lên firestore.
+    now = datetime.now()
+    timestamp = now.strftime('%Y-%m-%d-%H-%M-%S')
+    ext = os.path.splitext(file.filename)[1]
+    new_filename = f'{timestamp}{ext}'
+
+    # Upload file trực tiếp lên Firebase Storage từ bộ đệm của Flask
+    blob = bucket.blob(f'avatars/{new_filename}')
+    blob.upload_from_file(file.stream)
+    blob.make_public()  # Tùy chọn, để file có thể truy cập công khai
+    image_url = blob.public_url
+
     data = {
         'email': form['email'],
         'password': form['password'],
@@ -92,7 +121,7 @@ def create_staffs():
         'gender': form['gender'],
         'dateOfBirth': form['dateOfBirth'],
         'enable': True,
-        'numberDataset': 0
+        'imageUrl': image_url,
     }
     users_ref.add(data)
     return redirect('/manage-staffs')
@@ -102,7 +131,7 @@ def create_staffs():
 def get_register_face(id_staff):
     global uid
     if not is_authenticate():
-        return render_template('not_authenticate.html')
+        return render_template('not-authenticate.html')
     uid = id_staff
     return render_template('register-face.html')
 
@@ -180,19 +209,21 @@ def handle_stop_capture():
     is_capture = False
     for face in faces:
         save_image_concurrently(face, uid)
-    user_ref = users_ref.document(uid)
-    doc = user_ref.get()
-    user = doc.to_dict()
-    total_dataset = user['totalDataset'] + len(faces)
-    user['totalDataset'] = total_dataset
-    user_ref.update(user)
     faces = []
+
+
+# user_ref = users_ref.document(uid)
+# doc = user_ref.get()
+# user = doc.to_dict()
+# total_dataset = user['totalDataset'] + len(faces)
+# user['totalDataset'] = total_dataset
+# user_ref.update(user)
 
 
 @app.route('/dataset/<string:id_user>')
 def get_dataset(id_user):
     if not is_authenticate():
-        return render_template('not_authenticate.html')
+        return render_template('not-authenticate.html')
 
     dataset_dir = os.path.join(app.root_path, 'static', 'dataset', id_user)
     if not os.path.exists(dataset_dir):
@@ -205,7 +236,7 @@ def get_dataset(id_user):
 @app.route('/dataset/<string:id_user>/create')
 def get_create_dataset(id_user):
     if not is_authenticate():
-        return render_template('not_authenticate.html')
+        return render_template('not-authenticate.html')
     image_dir = os.path.join(app.root_path, 'static', 'image', id_user)
     if not os.path.exists(image_dir):
         os.makedirs(image_dir)
@@ -217,7 +248,7 @@ def get_create_dataset(id_user):
 @app.route('/dataset/<string:id_user>/create', methods=['POST'])
 def create_dataset(id_user):
     if not is_authenticate():
-        return render_template('not_authenticate.html')
+        return render_template('not-authenticate.html')
 
     image_urls = request.form.getlist('image-urls')
     current_script_path = os.path.abspath(__file__)
@@ -259,6 +290,31 @@ def handle_delete_image(data):
         except FileNotFoundError:
             print(f"not found: ${url}")
     socketio.emit('doneDeleteImage')
+
+
+# hiệu chỉnh nhân viên => có thể vô hiệu hoá nhân viên.
+@app.route('/edit/<string:id_user>')
+def get_edit_user(id_user):
+    if not is_authenticate():
+        return render_template('not-authenticate.html')
+    staff_ref = users_ref.document(id_user)
+    doc = staff_ref.get()
+    staff = doc.to_dict()
+    return render_template('edit-staff.html', staff=staff)
+
+
+@app.route('/edit/<string:id_user>', methods=['POST'])
+def edit_user(id_user):
+    if not is_authenticate():
+        return render_template('not-authenticate.html')
+    form = request.form
+    staff_ref = users_ref.document(id_user)
+    doc = staff_ref.get()
+    staff = doc.to_dict()
+    staff['enable'] = True if form['enable'] == 'True' else False
+    staff['password'] = form['password']
+    staff_ref.update(staff)
+    return redirect('/manage-staffs')
 
 
 if __name__ == '__main__':

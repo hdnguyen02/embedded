@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hiệu chỉnh nhân viên</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+{% include 'header.html' %}
+<a href="/manage-staffs" class='mx-24 mt-12 flex items-center gap-x-1 cursor-pointer text-blue-600 underline'>
+            <img class='w-5 h-5' src="/static/image/back.png" alt="" />
+            <span>Quản lý nhân viên</span>
+ </a>
+<div class="flex flex-col items-center mt-4">
+  <form method="post" class="w-full max-w-lg">
+
+
+        <div class="flex flex-wrap -mx-3 mb-6">
+
+    <div class="w-full md:w-1/2 px-3 mb-6 md:mb-0">
+      <label  class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="grid-first-name">
+       Enable
+      </label>
+        <select name="enable" class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" id="grid-last-name">
+            <option value="False">False</option>
+            <option value="True">True</option>
+        </select>
+    </div>
+    <div class="w-full md:w-1/2 px-3">
+      <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="grid-last-name">
+        Mật khẩu
+      </label>
+      <input name="password" class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" id="grid-last-name" type="password">
+    </div>
+  </div>
+        <div class="mt-4 flex justify-end"><button class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Hiệu chỉnh tài khoản nhân viên</button></div>
+</form>
+</div>
+</body>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+    })
+</script>
+</html>

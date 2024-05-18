@@ -11,10 +11,12 @@
             <img class='w-5 h-5' src="/static/image/back.png" alt="" />
             <span>Quản lý nhân viên</span>
  </a>
-<div class="flex flex-col items-center mt-12">
-
-  <form method="post" action="/manage-staffs/create" class="w-full max-w-lg">
-  <div class="flex flex-wrap -mx-3 mb-6">
+<div class="flex flex-col items-center mt-4">
+  <form method="post" action="/manage-staffs/create" enctype="multipart/form-data" class="w-full max-w-lg">
+      <div class="flex justify-center">
+         <img id="avatar" class="w-36 h-36 object-cover rounded-full" src="/static/image/user.png" alt="">
+      </div>
+  <div class="mt-4 flex flex-wrap -mx-3 mb-6">
     <div class="w-full md:w-1/2 px-3 mb-6 md:mb-0">
       <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="grid-first-name">
           Email
@@ -23,19 +25,19 @@
     </div>
     <div class="w-full md:w-1/2 px-3">
       <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="grid-last-name">
-        Password
+        Mật khẩu
       </label>
-      <input name="password" class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" id="grid-last-name" type="text" placeholder="Doe">
+      <input name="password" class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" id="grid-last-name" type="password" placeholder="Doe">
     </div>
   </div>
   <div class="flex flex-wrap -mx-3 mb-6">
     <div class="w-full px-3">
       <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="grid-password">
-        Gender
+        Giới tính
       </label>
         <select name="gender" class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" id="grid-password">
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
+            <option value="Male">Nam</option>
+            <option value="Female">Nữ</option>
         </select>
     </div>
   </div>
@@ -43,13 +45,13 @@
 
     <div class="w-full md:w-1/2 px-3 mb-6 md:mb-0">
       <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="grid-first-name">
-        First Name
+        Họ
       </label>
      <input name="firstName" class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" id="grid-last-name" type="text" placeholder="Doe">
     </div>
     <div class="w-full md:w-1/2 px-3">
       <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="grid-last-name">
-        Last Name
+        Tên
       </label>
       <input name="lastName" class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" id="grid-last-name" type="text" placeholder="Doe">
     </div>
@@ -58,20 +60,37 @@
 
     <div class="w-full md:w-1/2 px-3 mb-6 md:mb-0">
       <label  class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="grid-first-name">
-       Phone
+       Số điện thoại
       </label>
      <input name="phone" class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" id="grid-last-name" type="text" placeholder="Doe">
     </div>
     <div class="w-full md:w-1/2 px-3">
       <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="grid-last-name">
-        Date of birth
+        Ngày sinh
       </label>
       <input name="dateOfBirth" class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" id="grid-last-name" type="date">
     </div>
   </div>
-        <div class="flex justify-end"><button class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Create staff</button></div>
+      <div>
+          <label>
+              <span class="mr-4">Tải lên ảnh đại diện</span>
+              <input name="avatar" id="inputAvatar" type="file" accept="image/*">
+          </label>
+      </div>
+        <div class="mt-4 flex justify-end"><button class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Tạo tài khoản nhân viên</button></div>
 </form>
 </div>
-
 </body>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById('inputAvatar').addEventListener('change', function (event) {
+            const file = event.target.files[0]
+            const reader = new FileReader()
+            reader.onload = function (e) {
+                document.getElementById('avatar').src = e.target.result;
+            }
+            reader.readAsDataURL(file)
+        })
+    })
+</script>
 </html>

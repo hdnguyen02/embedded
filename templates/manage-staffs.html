@@ -18,6 +18,9 @@
     <table class="w-full text-sm text-left rtl:text-right text-gray-500">
         <thead class="text-xs text-gray-700 uppercase bg-gray-50">
             <tr>
+                 <th scope="col" class="px-6 py-3">
+                    Avatar
+                </th>
                 <th scope="col" class="px-6 py-3">
                     Email
                 </th>
@@ -39,12 +42,18 @@
                 <th scope="col" class="px-6 py-3">
                     Quản lý dataset
                 </th>
+                 <th scope="col" class="px-6 py-3">
+                    Hiệu chỉnh
+                </th>
             </tr>
         </thead>
         <tbody>
 
             {% for staff in staffs %}
             <tr class="bg-white border-b">
+             <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
+                 <img src="{{ staff.imageUrl }}" class="w-12 h-12 object-cover rounded-full" alt="">
+                </th>
                 <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
                     {{ staff.email }}
                 </th>
@@ -69,6 +78,11 @@
                 <td class="px-6 py-4">
                     <a href="/dataset/{{ staff.uid }}">
                         <img src="/static/image/dataset.png" alt="">
+                    </a>
+                </td>
+                <td class="px-6 py-4">
+                    <a href="/edit/{{ staff.uid }}">
+                        <img src="/static/image/edit.png" alt="">
                     </a>
                 </td>
             </tr>
