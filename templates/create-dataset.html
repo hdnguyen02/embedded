@@ -17,6 +17,7 @@
     <div class="flex justify-between mt-4">
         <h3 class="font-medium text-2xl">ảnh nhân viên</h3>
         <div class="flex gap-x-4">
+            <button type="button" id="btnCheckAll" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Chọn tất cả</button>
             <button id="btnCreateDataset" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Thêm dataset</button>
             <button type="button" id="btnDeleteImage" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Xóa ảnh</button>
         </div>
@@ -60,6 +61,14 @@
 
     socket.on('doneDeleteImage', function () {
         location.reload()
+    })
+    document.getElementById('btnCheckAll').addEventListener('click', function () {
+        const inputImageUrls = document.querySelectorAll('input[type="checkbox"]')
+        inputImageUrls.forEach(inputDatasetUrl => {
+            if (!inputDatasetUrl.checked) {
+                inputDatasetUrl.checked = true
+            }
+        })
     })
 
 </script>
