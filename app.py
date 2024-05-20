@@ -10,6 +10,15 @@ import cv2
 from flask_socketio import SocketIO
 from multiprocessing import Process
 import shutil
+import tensorflow as tf
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import numpy as np
+from threading import Thread, Event
+
+from AI.model import create_1D_neural_network
+from AI.helpers import bgr_2_grayscale, load_dataset_from_directory, hex_to_str_array
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
@@ -28,6 +37,9 @@ users_ref = db.collection('users')
 is_capture = False
 uid = ''
 faces = []
+
+plot_event = Event()
+hist = None
 
 
 @app.route('/')
@@ -316,6 +328,162 @@ def edit_user(id_user):
     staff_ref.update(staff)
     return redirect('/manage-staffs')
 
+@app.route('/manage-models')
+def manage_models():
+    if not is_authenticate():
+        return render_template('not-authenticate.html')
+    
+    models = []
+    model_docs = db.collection("models").stream()
+    for doc in model_docs:
+        model = doc.to_dict()
+        # Chuyển đổi string sang datetime
+        model["time"] = datetime.strptime(model['time'], "%d-%m-%Y %H:%M:%S")
+        model["mid"] = doc.id
+        models.append(model)
+    # Sắp xếp theo time giảm dần
+    sorted_models = sorted(models, key = lambda x: x['time'], reverse=True)
+    # Format lại prop time
+    for model in sorted_models:
+        model["time"] = model["time"].strftime("%d-%m-%Y %H:%M:%S")
+    return render_template('manage-models.html', models = sorted_models)
+
+@app.route('/manage-models/change-model/<string:model_id>')
+def change_model(model_id):
+    if not is_authenticate():
+        return render_template('not-authenticate.html')
+    
+    models_ref = db.collection("models")
+
+    # Thay đổi isSelected của các model từ True sang False
+    selected_model_docs = models_ref.where("isSelected", "==", True).stream()
+    for doc in selected_model_docs:
+        models_ref.document(doc.id).update({"isSelected": False})
+
+    # Cập nhật isSelected của model yêu cầu sang True
+    final_model = models_ref.document(model_id).get()
+    if final_model.exists:
+        models_ref.document(model_id).update({"isSelected": True, "isEmbedded":False})
+
+    return redirect("/manage-models")
+
+@app.route('/manage-models/train-model')
+def train_model():
+    if not is_authenticate():
+        return render_template('not-authenticate.html')
+    
+    return render_template('train-model.html')
+
+@socketio.on("trainNewModel")
+def train_new_model():
+    print("Start training")
+    dataset_path = "./static/dataset"
+    # Tính số nhãn model cần phần loại (số nhãn = int(nhãn lớn nhất) + 1)
+    # Do model yêu cầu label đánh số từ [0,số nhãn dataset) nên để tiện ánh xạ với user id, đặt số nhãn cần phân loại là nhãn lớn nhất + 1 (bao gồm nhãn unknown - 0)
+    num_classes = 0
+    for subdir in os.listdir(dataset_path):
+        subdir_path = os.path.join(dataset_path, subdir)
+        # Kiểm tra xem subdir có phải là thư mục không
+        if os.path.isdir(subdir_path):
+            if num_classes < int(subdir): 
+                num_classes = int(subdir)
+    if num_classes == 0:
+        socketio.emit("noDataset", {"msg": "Không có dataset để train"})
+        return
+    num_classes += 1
+
+    image_width = 20 
+    image_height = 20
+    batch_size = 32
+    # Load data từ thư mục dataset
+    images, y_train = load_dataset_from_directory(directory=dataset_path, shuffle=True, shape=(image_width, image_height))
+
+    # Chuyến sang GRAYSCALE
+    gray_images = []
+    for image in images:
+        gray_images.append(bgr_2_grayscale(image))
+    # Chuyển sang 1D
+    x_train = []
+    for image in gray_images:
+        x_train.append(image.flatten())
+    x_train = np.array(x_train)
+    print("Finish loading dataset")
+    # Khởi tạo model và một số hàm kích hoạt
+    model = create_1D_neural_network(lenght=image_width*image_height, class_num=num_classes)
+    model.compile(loss='sparse_categorical_crossentropy', 
+                optimizer='adam', 
+                metrics=['accuracy'])
+    earlystopping = tf.keras.callbacks.EarlyStopping(monitor ="val_loss", 
+                                        mode ="min", patience = 20, 
+                                        restore_best_weights = True)
+    print("Start training model")
+    # Train
+    global hist
+    hist = model.fit(x_train, 
+                 y_train,
+            epochs=100,
+            batch_size=batch_size,
+            validation_split=0.2,
+            callbacks=[earlystopping])
+    print("Finish training model")
+
+    model_path = os.path.join("static", "model")
+    if not os.path.exists(model_path):
+        os.makedirs(model_path)
+    # Lưu sơ đồ đánh giá
+    thread = Thread(target=save_plot)
+    thread.start()
+    plot_event.wait()
+
+    # Lưu model
+    model.save(os.path.join("static/model", "model.h5"))
+
+    socketio.emit("finishTraining")
+
+def save_plot():
+    global hist
+    # plt.ion()
+    # Biểu đồ đánh giá loss
+    fig = plt.figure()
+    plt.plot(hist.history['loss'], color='teal', label="lost")
+    plt.plot(hist.history['val_loss'], color='orange', label="val_loss")
+    fig.suptitle("loss", fontsize=20)
+    plt.legend(loc = "upper left")
+    plt.savefig('./static/model/loss_plot.png')
+    plt.close(fig)
+    # Biểu đồ đánhg giá accuracy
+    fig = plt.figure()
+    plt.plot(hist.history['accuracy'], color='teal', label="accuracy")
+    plt.plot(hist.history['val_accuracy'], color='orange', label="val_accuracy")
+    fig.suptitle("accuracy", fontsize=20)
+    plt.legend(loc = "upper left")
+    plt.savefig('./static/model/accuracy_plot.png')
+    plt.close(fig)
+
+    # plt.ioff()
+    plot_event.set()
+
+
+@socketio.on("saveCurrentModel")
+def save_current_model(data):
+    print("Start saving")
+
+    model_document = {
+        "decs": data["decs"],
+        "isEmbedded": False,
+        "isSelected": False,
+        "time": datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
+        "fileUrl" : ""
+    }
+    _, ref = db.collection("models").add(model_document)
+    # Lưu file model
+    blob = bucket.blob(f"models/{ref.id}.h5")
+    blob.upload_from_filename(os.path.join("static/model", "model.h5"))
+    file_url = blob.public_url
+    # Cập nhật dowload url cho model_document
+    db.collection("models").document(ref.id).update({"fileUrl" : file_url})
+
+    socketio.emit("finishSaving")
 
 if __name__ == '__main__':
     app.run()
