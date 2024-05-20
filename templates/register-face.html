@@ -18,7 +18,7 @@
         <img id="videoStream" src="{{ url_for('video_feed') }}" alt="Camera Stream" width="640" height="480">
     </div>
     <div class="flex flex-col justify-between">
-         <span class="font-medium text-2xl" id="showTotalCapture">0 hình ảnh</span>
+         <span class="font-medium text-2xl" id="showTotalCapture">0/200 hình ảnh</span>
         <div>
             <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" id="captureButton">Bắt đầu lấy ảnh</button>
             <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded" id="stopCaptureButton">Ngưng lấy ảnh</button>
@@ -31,14 +31,19 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         let socket = io.connect('http://' + document.domain + ':' + location.port)
-        socket.on('connect', function() {
-                console.log('connected to server');
-        });
+        const LIMIT_CAPTURE = 200
         const captureButton = document.getElementById('captureButton')
         const stopCaptureButton = document.getElementById('stopCaptureButton')
         const showTotalCapture = document.getElementById('showTotalCapture')
         socket.on('showTotalCapture', function ({totalDataset}) {
-            showTotalCapture.innerText = "Số ảnh " + totalDataset
+            if (totalDataset === LIMIT_CAPTURE) {
+                socket.emit('stop-capture')
+                // thông báo đến cho người dùng đủ ảnh.
+                showTotalCapture.style.color = 'red'
+                showTotalCapture.innerText = "Số ảnh " + totalDataset + "/200" + " (Đã đủ)"
+                return
+            }
+            showTotalCapture.innerText = "Số ảnh " + totalDataset + "/200"
         })
         captureButton.addEventListener('click', function () {
             showTotalCapture.innerText = '0 hình ảnh'
