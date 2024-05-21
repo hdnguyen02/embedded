@@ -16,6 +16,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 from threading import Thread, Event
+import time
 
 from AI.model import create_1D_neural_network
 from AI.helpers import bgr_2_grayscale, load_dataset_from_directory, hex_to_str_array
@@ -431,20 +432,12 @@ def train_new_model():
 
     # Lưu model
     model.save(os.path.join("static/model", "model.h5"))
-
+    time.sleep(1)
     socketio.emit("finishTraining")
 
 def save_plot():
     global hist
     # plt.ion()
-    # Biểu đồ đánh giá loss
-    fig = plt.figure()
-    plt.plot(hist.history['loss'], color='teal', label="lost")
-    plt.plot(hist.history['val_loss'], color='orange', label="val_loss")
-    fig.suptitle("loss", fontsize=20)
-    plt.legend(loc = "upper left")
-    plt.savefig('./static/model/loss_plot.png')
-    plt.close(fig)
     # Biểu đồ đánhg giá accuracy
     fig = plt.figure()
     plt.plot(hist.history['accuracy'], color='teal', label="accuracy")
@@ -454,6 +447,15 @@ def save_plot():
     plt.savefig('./static/model/accuracy_plot.png')
     plt.close(fig)
 
+    # Biểu đồ đánh giá loss
+    fig = plt.figure()
+    plt.plot(hist.history['loss'], color='teal', label="lost")
+    plt.plot(hist.history['val_loss'], color='orange', label="val_loss")
+    fig.suptitle("loss", fontsize=20)
+    plt.legend(loc = "upper left")
+    plt.savefig('./static/model/loss_plot.png')
+    plt.close(fig)
+    
     # plt.ioff()
     plot_event.set()
 

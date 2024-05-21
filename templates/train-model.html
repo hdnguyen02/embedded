@@ -149,7 +149,8 @@
         })
 
         socket.on("finishTraining", function () {
-            location.reload()
+            location.assign(location.href)
+            window.location.reload()
         })
 
         socket.on("noDataset", function (data) {
