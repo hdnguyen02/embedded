@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Train model</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+    <link href="https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <style>
+        .modal-container {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.2);
+            display: flex;
+            /* flex-direction: column; */
+            justify-content: center;
+            align-items: center;
+            /* gap: 16px; */
+        }
+
+        .loader {
+            width: 60px;
+            display: flex;
+            justify-content: space-evenly;
+            transform: translateY(8px);
+        }
+
+        .ball {
+            list-style: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #fff;
+        }
+
+        .ball:nth-child(1) {
+            animation: bounce-1 2.1s ease-in-out infinite;
+        }
+
+        @keyframes bounce-1 {
+            50% {
+                transform: translateY(-4px);
+            }
+
+            90% {
+                transform: translateY(0)
+            }
+        }
+
+        .ball:nth-child(2) {
+            animation: bounce-3 2.1s ease-in-out 0.3s infinite;
+        }
+
+        @keyframes bounce-2 {
+            50% {
+                transform: translateY(-8px);
+            }
+
+            90% {
+                transform: translateY(0)
+            }
+        }
+
+        .ball:nth-child(3) {
+            animation: bounce-3 2.1s ease-in-out 0.6s infinite;
+        }
+
+        @keyframes bounce-3 {
+            50% {
+                transform: translateY(-8px);
+            }
+
+            90% {
+                transform: translateY(0)
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="flex justify-between items-center px-24">
+        <span class="text-blue-600 font-medium text-2xl">Embedded</span>
+        <div>
+            <ul class="flex gap-x-12 font-medium">
+                <li><a href="/manage-staffs">Quản lý nhân viên</a></li>
+                <li><a href="/manage-models">Quản lý model</a></li>
+                <li><a href="/log-out">Đăng xuất</a></li>
+            </ul>
+        </div>
+        <div class="flex justify-end items-center gap-x-4 py-4">
+            <span>{{session['firstName'] + " " + session['lastName']}}</span>
+            <div><img class="w-10 h-10" src="/static/image/user.png" alt=""></div>
+        </div>
+    </div>
+    <div class=" mx-24 my-2">
+        <p class="font-medium text-2xl text-center mb-2">Kết quả train</p>
+        <div class="flex justify-center gap-6">
+            <button class="bg-blue-200 px-4 py-2 rounded-md" id="btnRetrain">
+                <i class="fa-solid fa-rotate-right"></i>
+                Train lại
+            </button>
+            <button class="bg-blue-400 px-4 py-2 rounded-md" id="btnSave">
+                <i class="fa-solid fa-check"></i>
+                Lưu model
+            </button>
+        </div>
+        <div class="flex justify-evenly">
+            <div class="w-2/5">
+                <img src="../../static/model/loss_plot.png" alt="" class="object-contain">
+            </div>
+            <div class="w-2/5">
+                <img src="../../static/model/accuracy_plot.png" alt="" class="object-contain">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let socket = io.connect(location.origin)
+        const $ = document.querySelector.bind(document)
+
+        const loaderTemplate = `<div class="modal-container">
+            <p class="text-white text-4xl font-bold">Processing</p>
+            <div class="loader">
+                <li class="ball"></li>
+                <li class="ball"></li>
+                <li class="ball"></li>
+            </div > 
+        </div>`
+
+        $("#btnRetrain").addEventListener("click", e => {
+            if (confirm("Sure to retrain this model?") == true) {
+                document.body.insertAdjacentHTML("beforeend", loaderTemplate)
+                socket.emit("trainNewModel")
+            }
+        })
+
+        $("#btnSave").addEventListener("click", e => {
+            description = prompt("Type your model description!")
+            if (description.trim()) {
+                document.body.insertAdjacentHTML("beforeend", loaderTemplate)
+                socket.emit("saveCurrentModel", { decs: description })
+            }
+
+        })
+
+        socket.on("finishTraining", function () {
+            location.reload()
+        })
+
+        socket.on("noDataset", function (data) {
+            document.body.removeChild($(".modal-container"))
+            alert(data.msg)
+        })
+
+        socket.on("finishSaving", function () {
+            location.assign(location.origin + "/manage-models")
+        })
+
+    </script>
+
+</body>
+
+</html>
