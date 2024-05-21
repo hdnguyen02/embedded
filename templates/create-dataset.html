@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dataset</title>
+    <title>Tạo dataset</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
+{% include 'header.html' %}
     <form method="POST" class="mx-24 my-12">
     <a href="/manage-staffs" class='flex items-center gap-x-1 cursor-pointer text-blue-600 underline'>
         <img class='w-5 h-5' src="/static/image/back.png" alt="" />
@@ -16,9 +17,13 @@
     <div class="flex justify-between mt-4">
         <h3 class="font-medium text-2xl">ảnh nhân viên</h3>
         <div class="flex gap-x-4">
+            <button type="button" id="btnCheckAll" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Chọn tất cả</button>
             <button id="btnCreateDataset" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Thêm dataset</button>
-            <button id="btnDeleteImage" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Xóa ảnh</button>
+            <button type="button" id="btnDeleteImage" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Xóa ảnh</button>
         </div>
+    </div>
+    <div class="mt-4">
+        <span class="text-xl">Số lượng ảnh: {{ image_urls.__len__() }}</span>
     </div>
     <div class="flex gap-4 flex-wrap mt-8">
     {% if image_urls %}
@@ -34,8 +39,6 @@
 </div>
 </form>
 </body>
-
-
 <script>
 
 
@@ -53,14 +56,20 @@
                 imageUrls.push(inputDatasetUrl.value)
             }
         })
-        socket.emit('deleteDatasets', {imageUrls})
+        socket.emit('deleteImages', {imageUrls})
     })
 
     socket.on('doneDeleteImage', function () {
         location.reload()
     })
-
-
+    document.getElementById('btnCheckAll').addEventListener('click', function () {
+        const inputImageUrls = document.querySelectorAll('input[type="checkbox"]')
+        inputImageUrls.forEach(inputDatasetUrl => {
+            if (!inputDatasetUrl.checked) {
+                inputDatasetUrl.checked = true
+            }
+        })
+    })
 
 </script>
 </html>

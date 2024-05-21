@@ -5,11 +5,11 @@ from flask import Flask, session, render_template, request, Response, redirect
 from google.cloud.firestore_v1.base_query import FieldFilter
 from google.cloud.firestore_v1.base_query import BaseCompositeFilter
 from datetime import timedelta, datetime
-from werkzeug.utils import secure_filename
 import cv2
 from flask_socketio import SocketIO
 from multiprocessing import Process
 import shutil
+
 import tensorflow as tf
 import matplotlib
 matplotlib.use('Agg')
@@ -19,6 +19,8 @@ from threading import Thread, Event
 
 from AI.model import create_1D_neural_network
 from AI.helpers import bgr_2_grayscale, load_dataset_from_directory, hex_to_str_array
+
+from common import generate_user_id
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
@@ -93,7 +95,6 @@ def show_manage_staffs():
     staffs = []
     for doc in query:
         staff = doc.to_dict()
-        staff['uid'] = doc.id
         staffs.append(staff)
     return render_template('manage-staffs.html', staffs=staffs)
 
@@ -117,11 +118,12 @@ def create_staffs():
     ext = os.path.splitext(file.filename)[1]
     new_filename = f'{timestamp}{ext}'
 
-    # Upload file trực tiếp lên Firebase Storage từ bộ đệm của Flask
     blob = bucket.blob(f'avatars/{new_filename}')
     blob.upload_from_file(file.stream)
-    blob.make_public()  # Tùy chọn, để file có thể truy cập công khai
+    blob.make_public()
     image_url = blob.public_url
+    # khởi tạo id user.
+    id_staff = generate_user_id()
 
     data = {
         'email': form['email'],
@@ -134,12 +136,13 @@ def create_staffs():
         'dateOfBirth': form['dateOfBirth'],
         'enable': True,
         'imageUrl': image_url,
+        'id': id_staff
     }
     users_ref.add(data)
     return redirect('/manage-staffs')
 
 
-@app.route('/register-face/<string:id_staff>', methods=['GET'])
+@app.route('/register-face/<int:id_staff>', methods=['GET'])
 def get_register_face(id_staff):
     global uid
     if not is_authenticate():
@@ -166,7 +169,7 @@ def get_face(frame):
 
 
 def save_image(frame, id_user):
-    image_user_dir = os.path.join(os.getcwd(), 'static', 'image', id_user)
+    image_user_dir = os.path.join(os.getcwd(), 'static', 'image', str(id_user))
     if not os.path.exists(image_user_dir):
         os.makedirs(image_user_dir)
     current_time = datetime.now().strftime('%Y%m%d%H%M%S%f')
@@ -222,14 +225,6 @@ def handle_stop_capture():
     for face in faces:
         save_image_concurrently(face, uid)
     faces = []
-
-
-# user_ref = users_ref.document(uid)
-# doc = user_ref.get()
-# user = doc.to_dict()
-# total_dataset = user['totalDataset'] + len(faces)
-# user['totalDataset'] = total_dataset
-# user_ref.update(user)
 
 
 @app.route('/dataset/<string:id_user>')
@@ -305,27 +300,26 @@ def handle_delete_image(data):
 
 
 # hiệu chỉnh nhân viên => có thể vô hiệu hoá nhân viên.
-@app.route('/edit/<string:id_user>')
+@app.route('/edit/<int:id_user>')
 def get_edit_user(id_user):
     if not is_authenticate():
         return render_template('not-authenticate.html')
-    staff_ref = users_ref.document(id_user)
-    doc = staff_ref.get()
-    staff = doc.to_dict()
+    docs = users_ref.where('id', '==', id_user).get()
+    staff = docs[0].to_dict()
     return render_template('edit-staff.html', staff=staff)
 
 
-@app.route('/edit/<string:id_user>', methods=['POST'])
+@app.route('/edit/<int:id_user>', methods=['POST'])
 def edit_user(id_user):
     if not is_authenticate():
         return render_template('not-authenticate.html')
     form = request.form
-    staff_ref = users_ref.document(id_user)
-    doc = staff_ref.get()
-    staff = doc.to_dict()
+    docs = users_ref.where('id', '==', id_user).get()
+    id_doc = docs[0].id
+    staff = docs[0].to_dict()
     staff['enable'] = True if form['enable'] == 'True' else False
     staff['password'] = form['password']
-    staff_ref.update(staff)
+    users_ref.document(id_doc).update(staff)
     return redirect('/manage-staffs')
 
 @app.route('/manage-models')
