@@ -41,8 +41,10 @@ def create_1D_neural_network(lenght, class_num):
         tf.keras.layers.Rescaling(scale=1./255),
         tf.keras.layers.Dense(8, activation='relu'),
         tf.keras.layers.Dropout(0.5),    
-        tf.keras.layers.Dense(32, activation='relu'),
+        tf.keras.layers.Dense(16, activation='relu'),
         tf.keras.layers.Dropout(0.5),    
+        tf.keras.layers.Dense(32, activation='relu'),
+        tf.keras.layers.Dropout(0.5),
         # tf.keras.layers.Dense(64, activation='relu'),
         tf.keras.layers.Dense(class_num, activation='softmax')
     ])
