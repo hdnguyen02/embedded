@@ -11,6 +11,7 @@ from multiprocessing import Process
 import shutil
 
 import tensorflow as tf
+from tensorflow.keras.models import load_model
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -19,7 +20,7 @@ from threading import Thread, Event
 import time
 
 from AI.model import create_1D_neural_network
-from AI.helpers import bgr_2_grayscale, load_dataset_from_directory, hex_to_str_array
+from AI.helpers import bgr_2_grayscale, load_dataset_from_directory, hex_to_c_array 
 
 from common import generate_user_id
 
@@ -43,7 +44,7 @@ faces = []
 
 plot_event = Event()
 hist = None
-
+num_classes = 0
 
 @app.route('/')
 def show_login():
@@ -79,6 +80,8 @@ def handle_login():
         session['firstName'] = data[0]['firstName']
         session['lastName'] = data[0]['lastName']
         return redirect('/manage-staffs')
+    else:
+        return render_template('login.html', error="Thông tin đăng nhập không chính xác")
 
 
 def is_authenticate():
@@ -371,6 +374,7 @@ def train_model():
 
 @socketio.on("trainNewModel")
 def train_new_model():
+    global num_classes
     print("Start training")
     dataset_path = "./static/dataset"
     # Tính số nhãn model cần phần loại (số nhãn = int(nhãn lớn nhất) + 1)
@@ -386,12 +390,14 @@ def train_new_model():
         socketio.emit("noDataset", {"msg": "Không có dataset để train"})
         return
     num_classes += 1
+    print(num_classes)
 
     image_width = 20 
     image_height = 20
     batch_size = 32
     # Load data từ thư mục dataset
     images, y_train = load_dataset_from_directory(directory=dataset_path, shuffle=True, shape=(image_width, image_height))
+    print(images.shape)
 
     # Chuyến sang GRAYSCALE
     gray_images = []
@@ -462,7 +468,15 @@ def save_plot():
 
 @socketio.on("saveCurrentModel")
 def save_current_model(data):
+    global num_classes
     print("Start saving")
+
+    model = load_model(os.path.join("static/model", f"model.h5"))
+    converter = tf.lite.TFLiteConverter.from_keras_model(model)
+    tflite_model = converter.convert()
+    # Tạo file .h
+    with open("nn_model" + '.h', 'w') as file:
+        file.write(hex_to_c_array(tflite_model, "nn_model", num_classes ))
 
     model_document = {
         "decs": data["decs"],
@@ -473,8 +487,8 @@ def save_current_model(data):
     }
     _, ref = db.collection("models").add(model_document)
     # Lưu file model
-    blob = bucket.blob(f"models/{ref.id}.h5")
-    blob.upload_from_filename(os.path.join("static/model", "model.h5"))
+    blob = bucket.blob(f"models/{ref.id}.h")
+    blob.upload_from_filename(os.path.join("", "nn_model.h"))
     file_url = blob.public_url
     # Cập nhật dowload url cho model_document
     db.collection("models").document(ref.id).update({"fileUrl" : file_url})
